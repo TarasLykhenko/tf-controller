@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sigs.k8s.io/controller-runtime"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 func (r *TerraformRunnerServer) Plan(ctx context.Context, req *PlanRequest) (*PlanReply, error) {
@@ -17,6 +19,9 @@ func (r *TerraformRunnerServer) Plan(ctx context.Context, req *PlanRequest) (*Pl
 	go func() {
 		select {
 		case <-r.Done:
+			if r.terraform.Spec.RunnerTerminationGracePeriodSeconds != nil {
+				time.Sleep(time.Duration(*r.terraform.Spec.RunnerTerminationGracePeriodSeconds) * time.Second)
+			}
 			cancel()
 		case <-ctx.Done():
 		}

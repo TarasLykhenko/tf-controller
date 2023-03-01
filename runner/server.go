@@ -5,6 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"time"
+
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/fluxcd/pkg/untar"
 	"github.com/go-logr/logr"
@@ -14,19 +22,13 @@ import (
 	"github.com/weaveworks/tf-controller/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const (
@@ -439,6 +441,9 @@ func (r *TerraformRunnerServer) Destroy(ctx context.Context, req *DestroyRequest
 	go func() {
 		select {
 		case <-r.Done:
+			if r.terraform.Spec.RunnerTerminationGracePeriodSeconds != nil {
+				time.Sleep(time.Duration(*r.terraform.Spec.RunnerTerminationGracePeriodSeconds) * time.Second)
+			}
 			cancel()
 		case <-ctx.Done():
 		}
@@ -481,6 +486,9 @@ func (r *TerraformRunnerServer) Apply(ctx context.Context, req *ApplyRequest) (*
 	go func() {
 		select {
 		case <-r.Done:
+			if r.terraform.Spec.RunnerTerminationGracePeriodSeconds != nil {
+				time.Sleep(time.Duration(*r.terraform.Spec.RunnerTerminationGracePeriodSeconds) * time.Second)
+			}
 			cancel()
 		case <-ctx.Done():
 		}
